@@ -85,7 +85,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function httpsGet(url: string, headers: Record<string, string> = {}): Promise<{ status: number; headers: Record<string, string>; body: string }> {
+function httpsGet(url: string, headers: Record<string, string> = {}, timeoutMs: number = 30000): Promise<{ status: number; headers: Record<string, string>; body: string }> {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
     const options = {
@@ -104,8 +104,14 @@ function httpsGet(url: string, headers: Record<string, string> = {}): Promise<{ 
     const req = https.request(options, res => {
       let body = '';
       res.setEncoding('utf8');
+      const timeout = setTimeout(() => {
+        req.destroy();
+        reject(new Error('Response timeout'));
+      }, timeoutMs);
+
       res.on('data', chunk => { body += chunk; });
       res.on('end', () => {
+        clearTimeout(timeout);
         resolve({
           status: res.statusCode ?? 0,
           headers: res.headers as Record<string, string>,
@@ -114,72 +120,61 @@ function httpsGet(url: string, headers: Record<string, string> = {}): Promise<{ 
       });
     });
     req.on('error', reject);
+    const timeout = setTimeout(() => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    }, timeoutMs);
     req.end();
   });
 }
 
-async function apiGet<T>(url: string, rawAccept?: string): Promise<T | null> {
+async function apiGet<T>(url: string, rawAccept?: string, timeoutMs?: number): Promise<T | null> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const headers: Record<string, string> = {};
     if (rawAccept) headers['Accept'] = rawAccept;
 
-    const resp = await httpsGet(url, headers);
+    try {
+      const resp = await httpsGet(url, headers, timeoutMs ?? 30000);
 
-    if (resp.status === 200) {
-      try {
-        return JSON.parse(resp.body) as T;
-      } catch {
-        return null;
+      if (resp.status === 200) {
+        try {
+          return JSON.parse(resp.body) as T;
+        } catch {
+          return null;
+        }
       }
+
+      if (resp.status === 403 || resp.status === 429) {
+        const retryAfter = resp.headers['retry-after'];
+        const resetAt = resp.headers['x-ratelimit-reset'];
+        let waitMs = 60_000;
+        if (retryAfter) waitMs = parseInt(retryAfter, 10) * 1000;
+        else if (resetAt) waitMs = Math.max(0, parseInt(resetAt, 10) * 1000 - Date.now()) + 2000;
+        console.log(`  Rate limited. Waiting ${Math.ceil(waitMs / 1000)}s…`);
+        await sleep(waitMs);
+        continue;
+      }
+
+      if (resp.status === 404 || resp.status === 451) return null;
+      if (resp.status >= 500) { await sleep(5_000); continue; }
+
+      return null;
+    } catch (err) {
+      if (attempt === 2) return null;  // Give up after 3 attempts
+      console.log(`  Timeout/error on attempt ${attempt + 1}, retrying…`);
+      await sleep(3_000);
     }
-
-    if (resp.status === 403 || resp.status === 429) {
-      const retryAfter = resp.headers['retry-after'];
-      const resetAt = resp.headers['x-ratelimit-reset'];
-      let waitMs = 60_000;
-      if (retryAfter) waitMs = parseInt(retryAfter, 10) * 1000;
-      else if (resetAt) waitMs = Math.max(0, parseInt(resetAt, 10) * 1000 - Date.now()) + 2000;
-      console.log(`  Rate limited. Waiting ${Math.ceil(waitMs / 1000)}s…`);
-      await sleep(waitMs);
-      continue;
-    }
-
-    if (resp.status === 404 || resp.status === 451) return null;
-    if (resp.status >= 500) { await sleep(5_000); continue; }
-
-    return null;
   }
   return null;
 }
 
-function buildFileTree(items: GHTreeItem[]): object[] {
-  type Node = { name: string; type: string; path: string; children?: Node[] };
-  const root: Node[] = [];
-  const map = new Map<string, Node>();
-
-  const topLevel = items.filter(item => {
-    const parts = item.path.split('/');
-    return parts.length <= 2;
-  });
-
-  for (const item of topLevel) {
-    const parts = item.path.split('/');
-    const node: Node = { name: parts[parts.length - 1], type: item.type === 'tree' ? 'tree' : 'blob', path: item.path };
-    map.set(item.path, node);
-
-    if (parts.length === 1) {
-      root.push(node);
-    } else {
-      const parentPath = parts.slice(0, -1).join('/');
-      const parent = map.get(parentPath);
-      if (parent) {
-        if (!parent.children) parent.children = [];
-        parent.children.push(node);
-      }
-    }
-  }
-
-  return root;
+function buildRootTree(items: GHTreeItem[]): object[] {
+  return items.map(item => ({
+    name: item.path,
+    type: item.type === 'tree' ? 'tree' : 'blob',
+    path: item.path,
+    sha: item.sha,
+  }));
 }
 
 const upsert = db.prepare(`
@@ -207,16 +202,10 @@ async function fetchAndStore(repo: GHRepo, progress: string): Promise<void> {
 
   const log = (step: string) => process.stdout.write(`\r  ${progress} ${owner}/${name} — ${step}`.padEnd(80));
 
-  // File tree (top 2 levels via git trees)
-  log('file tree…');
-  let fileTree: object[] = [];
-  const branch = repo.default_branch || 'main';
-  const treeResp = await apiGet<GHTree>(`${base}/git/trees/${branch}?recursive=1`);
-  if (treeResp?.tree) {
-    fileTree = buildFileTree(treeResp.tree);
-  } else {
-    console.warn(`\n  Warning: no file tree for ${owner}/${name}`);
-  }
+  // Fetch root-level tree only (non-recursive, fast)
+  log('tree…');
+  const treeResp = await apiGet<GHTree>(`${base}/git/trees/${repo.default_branch}`, undefined, 60000);
+  const fileTree = treeResp ? buildRootTree(treeResp.tree) : [];
 
   // Last 10 commits
   log('commits…');
@@ -285,10 +274,15 @@ async function main() {
     console.log(`\nFetching: ${range}`);
     let page = 1;
     let rangeCount = 0;
+    let pagesFetched = 0;
 
-    while (page <= 10) { // max 1000 per range
-      const { items } = await searchRepos(`fork:false ${range}`, page);
-      if (items.length === 0) break;
+    try {
+      while (page <= 10) { // max 1000 per range
+        const { items } = await searchRepos(`fork:false ${range}`, page);
+        if (items.length === 0) {
+          console.log(`  No more items at page ${page}. Ending range.`);
+          break;
+        }
 
       for (const repo of items) {
         if (repo.fork) continue;
@@ -314,7 +308,13 @@ async function main() {
       }
 
       rangeCount += items.length;
-      if (items.length < 100) break;
+      pagesFetched++;
+      console.log(`  Page ${page}: ${items.length} items (range total so far: ${rangeCount})`);
+      
+      if (items.length < 100) {
+        console.log(`  Fewer than 100 items on page ${page}, moving to next range.`);
+        break;
+      }
       if (isDryRun && totalFetched >= DRY_RUN_LIMIT) break;
       page++;
 
@@ -322,10 +322,16 @@ async function main() {
       await sleep(1000);
     }
 
-    console.log(`  Fetched ${rangeCount} repos in range "${range}"`);
+    console.log(`  Fetched ${rangeCount} repos across ${pagesFetched} pages in range "${range}"`);
 
     const currentCount = db.prepare('SELECT COUNT(*) as cnt FROM repos').get() as { cnt: number };
     console.log(`  Total in DB: ${currentCount.cnt}`);
+    } catch (rangeError) {
+      console.error(`ERROR processing range "${range}":`, rangeError);
+      console.log(`  Partial progress: ${totalFetched} repos fetched, ${totalStored} stored`);
+      console.log(`  Continuing to next range…\n`);
+      continue;  // Continue to next range even if this one failed
+    }
   }
 
   const finalCount = db.prepare('SELECT COUNT(*) as cnt FROM repos').get() as { cnt: number };

@@ -438,6 +438,7 @@ export function GamePage() {
             {/* Compact file browser */}
             <FileBrowser
               key={game.timerKey}
+              repoId={currentRepo.id}
               nodes={currentRepo.file_tree}
               onFileSelect={handleFileSelect}
               selectedPath={contentView.type === 'file' ? contentView.path : null}

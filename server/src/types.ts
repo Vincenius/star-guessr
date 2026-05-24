@@ -2,6 +2,7 @@ export interface FileTreeNode {
   name: string;
   type: 'blob' | 'tree';
   path: string;
+  sha?: string;
   children?: FileTreeNode[];
 }
 

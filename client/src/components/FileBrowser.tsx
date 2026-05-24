@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { CommitInfo, FileTreeNode } from '../types';
 
+async function fetchTreeChildren(repoId: number, sha: string): Promise<FileTreeNode[]> {
+  const res = await fetch(`/api/repos/${repoId}/tree/${sha}`);
+  if (!res.ok) return [];
+  const data = await res.json() as { nodes: FileTreeNode[] };
+  return data.nodes;
+}
+
 interface Props {
+  repoId: number;
   nodes: FileTreeNode[];
   onFileSelect: (path: string, name: string) => void;
   selectedPath: string | null;
@@ -57,20 +65,30 @@ function sortNodes(nodes: FileTreeNode[]): FileTreeNode[] {
   });
 }
 
-export function FileBrowser({ nodes, onFileSelect, selectedPath, latestCommit }: Props) {
+export function FileBrowser({ repoId, nodes, onFileSelect, selectedPath, latestCommit }: Props) {
   const [navStack, setNavStack] = useState<{ name: string; nodes: FileTreeNode[] }[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const [loadingFolder, setLoadingFolder] = useState(false);
 
   const currentNodes = navStack.length > 0 ? navStack[navStack.length - 1].nodes : nodes;
   const sorted = sortNodes(currentNodes);
   const visible = showAll ? sorted : sorted.slice(0, ROW_CAP);
   const hiddenCount = sorted.length - ROW_CAP;
 
-  const enterFolder = (node: FileTreeNode) => {
-    if (node.type === 'tree' && node.children?.length) {
+  const enterFolder = async (node: FileTreeNode) => {
+    if (node.type !== 'tree') return;
+    if (node.children) {
       setNavStack(s => [...s, { name: node.name, nodes: node.children! }]);
       setShowAll(false);
+      return;
     }
+    if (!node.sha) return;
+    setLoadingFolder(true);
+    const children = await fetchTreeChildren(repoId, node.sha);
+    node.children = children;
+    setLoadingFolder(false);
+    setNavStack(s => [...s, { name: node.name, nodes: children }]);
+    setShowAll(false);
   };
 
   const goBack = () => {
@@ -129,7 +147,10 @@ export function FileBrowser({ nodes, onFileSelect, selectedPath, latestCommit }:
 
       {/* Rows */}
       <div className="divide-y divide-[#d0d7de]">
-        {visible.map(node => {
+        {loadingFolder && (
+          <div className="px-4 py-2 text-xs text-[#656d76] animate-pulse">Loading…</div>
+        )}
+        {!loadingFolder && visible.map(node => {
           const isSelected = selectedPath === node.path;
           const isFolder = node.type === 'tree';
           return (

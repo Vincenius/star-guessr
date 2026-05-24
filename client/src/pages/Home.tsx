@@ -96,7 +96,7 @@ export function HomePage() {
             <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm">
               <p className="font-medium text-gray-700 mb-1">Today's result</p>
               <p className="text-gray-600">
-                Score: <span className="font-bold text-blue-600">{dailyResult.score}</span> / 6,000
+                Score: <span className="font-bold text-blue-600">{dailyResult.score}</span> / 5,000
               </p>
               <p className="text-xs text-gray-400 mt-1">Next daily in {formatCountdown(countdown)}</p>
             </div>
@@ -113,7 +113,7 @@ export function HomePage() {
             <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm">
               <p className="font-medium text-gray-700 mb-1">Your best score</p>
               <p className="text-gray-600">
-                <span className="font-bold text-blue-600">{unlimitedBest.score}</span> / 6,000
+                <span className="font-bold text-blue-600">{unlimitedBest.score}</span> / 5,000
               </p>
             </div>
           )}

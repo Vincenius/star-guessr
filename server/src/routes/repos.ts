@@ -3,15 +3,22 @@ import https from 'https';
 import { getDb } from '../db';
 import { RepoRecord, RepoForGame, FileTreeNode } from '../types';
 
-function fetchRaw(url: string): Promise<{ status: number; body: string }> {
+function fetchRaw(url: string, headers: Record<string, string> = {}): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'star-guessr/1.0' } }, res => {
+    https.get(url, { headers: { 'User-Agent': 'star-guessr/1.0', ...headers } }, res => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', chunk => { body += chunk; });
       res.on('end', () => resolve({ status: res.statusCode ?? 0, body }));
     }).on('error', reject);
   });
+}
+
+function githubHeaders(): Record<string, string> {
+  const token = process.env.GITHUB_TOKEN;
+  return token
+    ? { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+    : { Accept: 'application/vnd.github+json' };
 }
 
 const router = Router();
@@ -116,6 +123,46 @@ router.get('/:id/stars', (req: Request, res: Response) => {
   }
 
   res.json({ stars: row.stars });
+});
+
+router.get('/:id/tree/:sha', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id) || id <= 0) {
+    res.status(400).json({ error: 'Invalid repo id' });
+    return;
+  }
+
+  const sha = req.params.sha;
+  if (!/^[0-9a-f]{40}$/.test(sha)) {
+    res.status(400).json({ error: 'Invalid sha' });
+    return;
+  }
+
+  const db = getDb();
+  const row = db.prepare('SELECT owner, name FROM repos WHERE id = ?').get(id) as { owner: string; name: string } | undefined;
+  if (!row) {
+    res.status(404).json({ error: 'Repo not found' });
+    return;
+  }
+
+  const url = `https://api.github.com/repos/${row.owner}/${row.name}/git/trees/${sha}`;
+  try {
+    const { status, body } = await fetchRaw(url, githubHeaders());
+    if (status !== 200) {
+      res.status(502).json({ error: 'Failed to fetch tree' });
+      return;
+    }
+    const data = JSON.parse(body) as { tree: { path: string; type: string; sha: string }[] };
+    const nodes: FileTreeNode[] = data.tree.map(item => ({
+      name: item.path,
+      type: item.type === 'tree' ? 'tree' : 'blob',
+      path: item.path,
+      sha: item.sha,
+    }));
+    res.json({ nodes });
+  } catch {
+    res.status(502).json({ error: 'Failed to fetch tree' });
+  }
 });
 
 router.get('/:id', (req: Request, res: Response) => {
