@@ -45,6 +45,23 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
   CREATE INDEX IF NOT EXISTS idx_repos_stars ON repos(stars DESC);
+
+  DROP TABLE IF EXISTS repos_staging;
+  CREATE TABLE repos_staging (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    owner TEXT NOT NULL,
+    description TEXT,
+    stars INTEGER NOT NULL DEFAULT 0,
+    language TEXT,
+    created_at TEXT NOT NULL,
+    topics TEXT NOT NULL DEFAULT '[]',
+    license TEXT,
+    default_branch TEXT NOT NULL DEFAULT 'main',
+    file_tree TEXT NOT NULL DEFAULT '[]',
+    commits TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 interface GHRepo {
@@ -178,7 +195,7 @@ function buildRootTree(items: GHTreeItem[]): object[] {
 }
 
 const upsert = db.prepare(`
-  INSERT INTO repos (id, name, owner, description, stars, language, created_at, topics, license, default_branch, file_tree, commits, updated_at)
+  INSERT INTO repos_staging (id, name, owner, description, stars, language, created_at, topics, license, default_branch, file_tree, commits, updated_at)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
@@ -325,8 +342,8 @@ async function main() {
 
     console.log(`  Fetched ${rangeCount} repos across ${pagesFetched} pages in range "${range}"`);
 
-    const currentCount = db.prepare('SELECT COUNT(*) as cnt FROM repos').get() as { cnt: number };
-    console.log(`  Total in DB: ${currentCount.cnt}`);
+    const currentCount = db.prepare('SELECT COUNT(*) as cnt FROM repos_staging').get() as { cnt: number };
+    console.log(`  Staging so far: ${currentCount.cnt}`);
     } catch (rangeError) {
       console.error(`ERROR processing range "${range}":`, rangeError);
       console.log(`  Partial progress: ${totalFetched} repos fetched, ${totalStored} stored`);
@@ -335,8 +352,21 @@ async function main() {
     }
   }
 
+  const stagingCount = db.prepare('SELECT COUNT(*) as cnt FROM repos_staging').get() as { cnt: number };
+  console.log(`\nScrape complete. Atomically swapping staging → repos (${stagingCount.cnt} repos)…`);
+
+  db.exec(`
+    BEGIN;
+    DROP TABLE IF EXISTS repos_old;
+    ALTER TABLE repos RENAME TO repos_old;
+    ALTER TABLE repos_staging RENAME TO repos;
+    CREATE INDEX IF NOT EXISTS idx_repos_stars ON repos(stars DESC);
+    DROP TABLE repos_old;
+    COMMIT;
+  `);
+
   const finalCount = db.prepare('SELECT COUNT(*) as cnt FROM repos').get() as { cnt: number };
-  console.log(`\nDone! ${finalCount.cnt} repos stored in ${DB_PATH}`);
+  console.log(`Done! ${finalCount.cnt} repos now live in ${DB_PATH}`);
 }
 
 main().catch(err => {
