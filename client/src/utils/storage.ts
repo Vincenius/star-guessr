@@ -1,4 +1,4 @@
-import { RoundResult } from '../types';
+import { RoundResult, RepoForGame } from '../types';
 
 export interface DailyResult {
   date: string;
@@ -10,6 +10,17 @@ export interface DailyResult {
 export interface PersonalBest {
   score: number;
   date: string;
+}
+
+// In-progress daily game state, saved after each submitted guess
+export interface DailySession {
+  date: string;
+  token: string;
+  repos: RepoForGame[];
+  results: RoundResult[];  // completed rounds so far
+  guesses: number[];
+  timestamps: number[];
+  sessionId: string;
 }
 
 export function getDailyResult(date: string): DailyResult | null {
@@ -24,6 +35,31 @@ export function getDailyResult(date: string): DailyResult | null {
 export function setDailyResult(result: DailyResult): void {
   try {
     localStorage.setItem(`daily_played_${result.date}`, JSON.stringify(result));
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function getDailySession(date: string): DailySession | null {
+  try {
+    const raw = localStorage.getItem(`daily_session_${date}`);
+    return raw ? (JSON.parse(raw) as DailySession) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setDailySession(session: DailySession): void {
+  try {
+    localStorage.setItem(`daily_session_${session.date}`, JSON.stringify(session));
+  } catch {
+    // storage unavailable (quota exceeded etc.)
+  }
+}
+
+export function clearDailySession(date: string): void {
+  try {
+    localStorage.removeItem(`daily_session_${date}`);
   } catch {
     // storage unavailable
   }
@@ -45,22 +81,6 @@ export function setUnlimitedBest(score: number): void {
       const pb: PersonalBest = { score, date: new Date().toISOString() };
       localStorage.setItem('unlimited_best', JSON.stringify(pb));
     }
-  } catch {
-    // storage unavailable
-  }
-}
-
-export function getCheatFlag(sessionId: string): boolean {
-  try {
-    return localStorage.getItem(`cheat_${sessionId}`) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function setCheatFlag(sessionId: string): void {
-  try {
-    localStorage.setItem(`cheat_${sessionId}`, '1');
   } catch {
     // storage unavailable
   }

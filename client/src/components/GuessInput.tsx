@@ -19,7 +19,7 @@ export function GuessInput({ onSubmit, disabled, round, totalRounds, timerKey }:
   const handleSubmit = (secondsRemaining: number) => {
     if (submitted || disabled) return;
     const parsed = parseInt(value, 10);
-    const guess = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    const guess = isNaN(parsed) || parsed < 0 ? 0 : Math.min(parsed, 1000000);
     setSubmitted(true);
     setTimerRunning(false);
     onSubmit(guess, secondsRemaining);
@@ -38,7 +38,6 @@ export function GuessInput({ onSubmit, disabled, round, totalRounds, timerKey }:
     handleSubmit(secondsRemainingRef.current);
   };
 
-  // Reset when round changes
   React.useEffect(() => {
     setValue('');
     setSubmitted(false);
@@ -50,55 +49,67 @@ export function GuessInput({ onSubmit, disabled, round, totalRounds, timerKey }:
   const preview = !isNaN(parsed) && parsed > 0 ? formatStars(parsed) : null;
 
   return (
-    <div className="space-y-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span className="font-medium">Round {round + 1} / {totalRounds}</span>
+    <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-2.5 bg-[#f6f8fa] border-b border-[#d0d7de] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-yellow-500 text-base">★</span>
+          <span className="text-sm font-semibold text-[#1f2328]">Your guess</span>
+        </div>
+        <span className="text-xs text-[#656d76] tabular-nums">
+          Round {round + 1} / {totalRounds}
+        </span>
       </div>
 
-      <Timer
-        key={timerKey}
-        durationSeconds={90}
-        running={timerRunning && !disabled}
-        onExpire={handleTimerExpire}
-        onTick={handleTimerTick}
-      />
+      <div className="p-4 space-y-4">
+        {/* Timer */}
+        <Timer
+          key={timerKey}
+          durationSeconds={90}
+          running={timerRunning && !disabled}
+          onExpire={handleTimerExpire}
+          onTick={handleTimerTick}
+        />
 
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          Your guess — how many stars?
-        </label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+        {/* Input */}
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-[#656d76]">
+            How many GitHub stars does this repo have?
+          </label>
+          <div className="relative">
             <input
               type="number"
               min="0"
-              max="999999999"
+              max="1000000"
               value={value}
               onChange={e => setValue(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !submitted && handleButtonClick()}
               disabled={submitted || disabled}
               placeholder="e.g. 12500"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full border border-[#d0d7de] rounded-md px-3 py-2.5 text-base text-[#1f2328] focus:outline-none focus:border-[#0969da] focus:ring-2 focus:ring-[#0969da]/20 disabled:bg-[#f6f8fa] disabled:text-[#656d76] font-mono placeholder:font-sans placeholder:text-[#8c959f]"
             />
             {preview && !submitted && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#8c959f] pointer-events-none">
                 ≈ {preview}
               </span>
             )}
           </div>
-          <button
-            onClick={handleButtonClick}
-            disabled={submitted || disabled || value === ''}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {submitted ? 'Submitted' : 'Submit'}
-          </button>
         </div>
-      </div>
 
-      {submitted && (
-        <p className="text-xs text-center text-gray-500 animate-pulse">Waiting for reveal…</p>
-      )}
+        {/* Submit button */}
+        <button
+          onClick={handleButtonClick}
+          disabled={submitted || disabled || value === ''}
+          className="w-full py-2.5 bg-[#2da44e] hover:bg-[#2c974b] active:bg-[#298e46] text-white text-sm font-semibold rounded-md disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 border border-[#1f883d] border-opacity-40"
+        >
+          <span className="text-base leading-none">★</span>
+          <span>{submitted ? 'Submitted!' : 'Submit Guess'}</span>
+        </button>
+
+        {submitted && (
+          <p className="text-xs text-center text-[#656d76] animate-pulse">Waiting for reveal…</p>
+        )}
+      </div>
     </div>
   );
 }

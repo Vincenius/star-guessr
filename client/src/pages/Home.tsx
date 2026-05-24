@@ -74,10 +74,7 @@ export function HomePage() {
           <div className="text-5xl mb-3">⭐</div>
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">StarGuessr</h1>
           <p className="text-gray-500 mt-2 text-base">
-            Browse real GitHub repos. Guess their star count.
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Star counts are updated periodically and may not reflect current GitHub data.
+            Guess the GitHub stars of 5 repositories
           </p>
         </div>
 

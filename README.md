@@ -1,6 +1,6 @@
 # StarGuessr
 
-Browse real GitHub repositories and guess how many stars they have.
+Guess the GitHub stars of 5 repositories
 
 **Game modes:**
 - **Daily** — same 5 repos for everyone each day, one attempt per day

@@ -47,10 +47,10 @@ export interface RoundResult {
   repoId: number;
   repoName: string;
   owner: string;
+  createdAt: string;
   guess: number;
   stars: number;
   score: number;
-  secondsRemaining: number;
 }
 
 export interface MultiplayerPlayer {

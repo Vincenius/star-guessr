@@ -37,20 +37,20 @@ export function Timer({ durationSeconds, running, onExpire, onTick }: Props) {
   }, [running, onExpire, onTick]);
 
   const pct = secondsLeft / durationSeconds;
-  const color =
-    secondsLeft > 30 ? 'bg-green-500' : secondsLeft > 10 ? 'bg-yellow-400' : 'bg-red-500';
+  const barColor =
+    secondsLeft > 30 ? 'bg-[#2da44e]' : secondsLeft > 10 ? 'bg-[#d4a72c]' : 'bg-[#cf222e]';
   const textColor =
-    secondsLeft > 30 ? 'text-green-700' : secondsLeft > 10 ? 'text-yellow-700' : 'text-red-600';
+    secondsLeft > 30 ? 'text-[#1a7f37]' : secondsLeft > 10 ? 'text-[#9a6700]' : 'text-[#cf222e]';
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <span className="text-xs text-gray-500 font-medium">Time</span>
-        <span className={`text-lg font-bold tabular-nums ${textColor}`}>{secondsLeft}s</span>
+        <span className="text-xs text-[#656d76] font-medium">Time remaining</span>
+        <span className={`text-base font-bold tabular-nums ${textColor}`}>{secondsLeft}s</span>
       </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-[#d0d7de] rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-1000 ${color}`}
+          className={`h-full rounded-full transition-all duration-1000 ${barColor}`}
           style={{ width: `${pct * 100}%` }}
         />
       </div>

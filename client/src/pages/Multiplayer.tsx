@@ -416,7 +416,7 @@ export function MultiplayerPage() {
         <main className={`${mobileTab === 'readme' ? 'flex' : 'hidden'} sm:flex flex-col flex-1 overflow-auto bg-white`}>
           <div className="flex-1 overflow-auto">
             {contentView.type === 'file' && fileContent !== null ? (
-              <ReadmeViewer content={fileContent} filename={contentView.path} isCode={true} />
+              <ReadmeViewer content={fileContent} filename={contentView.path} />
             ) : (
               <ReadmeViewer content={currentRepo.readme || '*No README available*'} />
             )}
