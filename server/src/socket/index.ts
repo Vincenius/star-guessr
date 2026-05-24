@@ -100,8 +100,7 @@ function endRound(io: IOServer, room: Room) {
     if (!player.submitted[roundIdx]) {
       player.guesses[roundIdx] = 0;
       player.submitted[roundIdx] = true;
-      const score = computeRoundScore(0, repo.stars, 0);
-      player.scores[roundIdx] = score;
+      player.scores[roundIdx] = computeRoundScore(0, repo.stars);
     }
   }
 
@@ -363,12 +362,9 @@ export function registerSocketHandlers(io: IOServer) {
       const roundIdx = room.currentRound;
       if (player.submitted[roundIdx]) return;
 
-      const elapsedMs = Date.now() - room.roundStartTime;
-      const secondsRemaining = Math.max(0, ROUND_DURATION_S - elapsedMs / 1000);
-
       player.guesses[roundIdx] = guess;
       player.submitted[roundIdx] = true;
-      player.scores[roundIdx] = computeRoundScore(guess, room.repos[roundIdx].stars, secondsRemaining);
+      player.scores[roundIdx] = computeRoundScore(guess, room.repos[roundIdx].stars);
 
       io.to(code).emit('game:player:submitted', { playerId: player.id, nickname: player.nickname });
 

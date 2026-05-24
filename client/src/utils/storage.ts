@@ -19,7 +19,6 @@ export interface DailySession {
   repos: RepoForGame[];
   results: RoundResult[];  // completed rounds so far
   guesses: number[];
-  timestamps: number[];
   sessionId: string;
 }
 

@@ -3,40 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { getDailyResult, getUnlimitedBest } from '../utils/storage';
 import { todayUTC } from '../utils/scoring';
 
-function ModeCard({
-  title,
-  description,
-  badge,
-  onClick,
-  disabled,
-  disabledReason,
-}: {
-  title: string;
-  description: string;
-  badge?: string;
-  onClick: () => void;
-  disabled?: boolean;
-  disabledReason?: string;
-}) {
+function ScoreBar({ score, max = 5000 }: { score: number; max?: number }) {
+  const pct = Math.min(100, (score / max) * 100);
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-    >
-      <div className="flex items-start justify-between mb-2">
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-        {badge && (
-          <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-medium">
-            {badge}
-          </span>
-        )}
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Score</span>
+        <span className="text-sm font-bold text-gray-800">
+          {score.toLocaleString()} <span className="text-gray-400 font-normal">/ {max.toLocaleString()}</span>
+        </span>
       </div>
-      <p className="text-sm text-gray-600">{description}</p>
-      {disabled && disabledReason && (
-        <p className="text-xs text-amber-600 mt-2">{disabledReason}</p>
-      )}
-    </button>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-blue-500 rounded-full transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -62,78 +45,110 @@ export function HomePage() {
   const [countdown, setCountdown] = React.useState(msUntilMidnightUTC());
 
   React.useEffect(() => {
-    if (!dailyResult) return;
     const iv = setInterval(() => setCountdown(msUntilMidnightUTC()), 1000);
     return () => clearInterval(iv);
-  }, [dailyResult]);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="grow bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-10">
-        <div className="text-center mb-8">
+
+        <div className="text-center mb-10">
           <div className="text-5xl mb-3">⭐</div>
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">StarGuessr</h1>
-          <p className="text-gray-500 mt-2 text-base">
-            Guess the GitHub stars of 5 repositories
+          <p className="text-gray-400 mt-2 text-sm">
+            Guess the GitHub star count of 5 repositories
           </p>
         </div>
 
-        <div className="space-y-4">
-          <ModeCard
-            title="Daily Challenge"
-            description="5 curated repos, same for everyone today. One attempt per day."
-            badge="Daily"
+        <div className="space-y-3">
+
+          {/* Daily Challenge */}
+          <button
             onClick={() => navigate('/game/daily')}
             disabled={!!dailyResult}
-            disabledReason={
+            className={`w-full text-left rounded-2xl p-5 border transition-all ${
               dailyResult
-                ? `Already played today! Score: ${dailyResult.score}. Next daily in ${formatCountdown(countdown)}.`
-                : undefined
-            }
-          />
-
-          {dailyResult && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm">
-              <p className="font-medium text-gray-700 mb-1">Today's result</p>
-              <p className="text-gray-600">
-                Score: <span className="font-bold text-blue-600">{dailyResult.score}</span> / 5,000
-              </p>
-              <p className="text-xs text-gray-400 mt-1">Next daily in {formatCountdown(countdown)}</p>
+                ? 'bg-white border-gray-200 cursor-default opacity-80'
+                : 'bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Daily Challenge</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {dailyResult ? `Next daily in ${formatCountdown(countdown)}` : '5 repos · one attempt per day'}
+                </p>
+              </div>
+              {dailyResult ? (
+                <span className="text-xs bg-green-100 text-green-700 rounded-full px-2.5 py-0.5 font-semibold shrink-0 ml-3">
+                  Done ✓
+                </span>
+              ) : (
+                <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2.5 py-0.5 font-semibold shrink-0 ml-3">
+                  Daily
+                </span>
+              )}
             </div>
-          )}
+            {dailyResult && <ScoreBar score={dailyResult.score} />}
+          </button>
 
-          <ModeCard
-            title="Unlimited"
-            description="Random repos, unlimited plays. Compete on the all-time leaderboard."
-            badge="∞"
+          {/* Unlimited */}
+          <button
             onClick={() => navigate('/game/unlimited')}
-          />
-
-          {unlimitedBest && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm">
-              <p className="font-medium text-gray-700 mb-1">Your best score</p>
-              <p className="text-gray-600">
-                <span className="font-bold text-blue-600">{unlimitedBest.score}</span> / 5,000
-              </p>
+            className="w-full text-left bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Unlimited</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {unlimitedBest ? 'Keep beating your best score' : 'Random repos · unlimited plays'}
+                </p>
+              </div>
+              <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2.5 py-0.5 font-semibold shrink-0 ml-3">∞</span>
             </div>
-          )}
+            {unlimitedBest && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Personal best</span>
+                  <span className="text-sm font-bold text-gray-800">
+                    {unlimitedBest.score.toLocaleString()} <span className="text-gray-400 font-normal">/ 5,000</span>
+                  </span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${Math.min(100, (unlimitedBest.score / 5000) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </button>
 
-          <ModeCard
-            title="Multiplayer"
-            description="Play with friends in real-time. Create or join a room."
-            badge="Live"
+          {/* Multiplayer */}
+          <button
             onClick={() => navigate('/multiplayer')}
-          />
+            className="w-full text-left bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Multiplayer</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Play with friends in real-time</p>
+              </div>
+            </div>
+          </button>
+
         </div>
 
-        <div className="mt-8 flex justify-center gap-4">
+        <div className="mt-6 flex justify-center">
           <button
             onClick={() => navigate('/leaderboard')}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-gray-400 hover:text-blue-500 transition-colors"
           >
-            View Leaderboard
+            View Leaderboard →
           </button>
         </div>
+
       </div>
     </div>
   );

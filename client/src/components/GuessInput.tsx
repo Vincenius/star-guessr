@@ -1,49 +1,29 @@
-import React, { useState, useRef } from 'react';
-import { Timer } from './Timer';
+import React, { useState } from 'react';
 import { formatStars } from '../utils/scoring';
 
 interface Props {
-  onSubmit: (guess: number, secondsRemaining: number) => void;
+  onSubmit: (guess: number) => void;
   disabled: boolean;
   round: number;
   totalRounds: number;
-  timerKey: number;
 }
 
-export function GuessInput({ onSubmit, disabled, round, totalRounds, timerKey }: Props) {
+export function GuessInput({ onSubmit, disabled, round, totalRounds }: Props) {
   const [value, setValue] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [timerRunning, setTimerRunning] = useState(true);
-  const secondsRemainingRef = useRef(90);
-
-  const handleSubmit = (secondsRemaining: number) => {
-    if (submitted || disabled) return;
-    const parsed = parseInt(value, 10);
-    const guess = isNaN(parsed) || parsed < 0 ? 0 : Math.min(parsed, 1000000);
-    setSubmitted(true);
-    setTimerRunning(false);
-    onSubmit(guess, secondsRemaining);
-  };
-
-  const handleTimerExpire = () => {
-    if (submitted) return;
-    handleSubmit(0);
-  };
-
-  const handleTimerTick = (s: number) => {
-    secondsRemainingRef.current = s;
-  };
-
-  const handleButtonClick = () => {
-    handleSubmit(secondsRemainingRef.current);
-  };
 
   React.useEffect(() => {
     setValue('');
     setSubmitted(false);
-    setTimerRunning(true);
-    secondsRemainingRef.current = 90;
-  }, [timerKey]);
+  }, [round]);
+
+  const handleSubmit = () => {
+    if (submitted || disabled) return;
+    const parsed = parseInt(value, 10);
+    const guess = isNaN(parsed) || parsed < 0 ? 0 : Math.min(parsed, 1000000);
+    setSubmitted(true);
+    onSubmit(guess);
+  };
 
   const parsed = parseInt(value, 10);
   const preview = !isNaN(parsed) && parsed > 0 ? formatStars(parsed) : null;
@@ -62,15 +42,6 @@ export function GuessInput({ onSubmit, disabled, round, totalRounds, timerKey }:
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Timer */}
-        <Timer
-          key={timerKey}
-          durationSeconds={90}
-          running={timerRunning && !disabled}
-          onExpire={handleTimerExpire}
-          onTick={handleTimerTick}
-        />
-
         {/* Input */}
         <div className="space-y-2">
           <label className="block text-xs font-medium text-[#656d76]">
@@ -83,7 +54,7 @@ export function GuessInput({ onSubmit, disabled, round, totalRounds, timerKey }:
               max="1000000"
               value={value}
               onChange={e => setValue(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !submitted && handleButtonClick()}
+              onKeyDown={e => e.key === 'Enter' && !submitted && handleSubmit()}
               disabled={submitted || disabled}
               placeholder="e.g. 12500"
               className="w-full border border-[#d0d7de] rounded-md px-3 py-2.5 text-base text-[#1f2328] focus:outline-none focus:border-[#0969da] focus:ring-2 focus:ring-[#0969da]/20 disabled:bg-[#f6f8fa] disabled:text-[#656d76] font-mono placeholder:font-sans placeholder:text-[#8c959f]"
@@ -98,7 +69,7 @@ export function GuessInput({ onSubmit, disabled, round, totalRounds, timerKey }:
 
         {/* Submit button */}
         <button
-          onClick={handleButtonClick}
+          onClick={handleSubmit}
           disabled={submitted || disabled || value === ''}
           className="w-full py-2.5 bg-[#2da44e] hover:bg-[#2c974b] active:bg-[#298e46] text-white text-sm font-semibold rounded-md disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 border border-[#1f883d] border-opacity-40"
         >

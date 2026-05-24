@@ -46,7 +46,7 @@ export function LeaderboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="grow bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-10">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-700 text-sm">

@@ -20,6 +20,8 @@ function getSocket(): Socket {
 export function MultiplayerPage() {
   const navigate = useNavigate();
   const socketRef = useRef<Socket | null>(null);
+  const myRoomCodeRef = useRef('');
+  const myPlayerIdRef = useRef('');
 
   const [phase, setPhase] = useState<Phase>('lobby-entry');
   const [entry, setEntry] = useState<'create' | 'join'>('create');
@@ -52,16 +54,26 @@ export function MultiplayerPage() {
     const socket = getSocket();
     socketRef.current = socket;
 
+    socket.on('connect', () => {
+      if (myRoomCodeRef.current && myPlayerIdRef.current) {
+        socket.emit('room:reconnect', { code: myRoomCodeRef.current, oldPlayerId: myPlayerIdRef.current });
+      }
+    });
+
     socket.on('room:created', (data: { code: string; playerId: string }) => {
       setMyRoomCode(data.code);
+      myRoomCodeRef.current = data.code;
       setMyPlayerId(data.playerId);
+      myPlayerIdRef.current = data.playerId;
       setIsHost(true);
       setPhase('lobby-waiting');
     });
 
     socket.on('room:joined', (data: { playerId: string; players: MultiplayerPlayer[]; code: string }) => {
       setMyPlayerId(data.playerId);
+      myPlayerIdRef.current = data.playerId;
       setMyRoomCode(data.code);
+      myRoomCodeRef.current = data.code;
       setPlayers(data.players);
       setPhase('lobby-waiting');
     });
@@ -170,7 +182,7 @@ export function MultiplayerPage() {
 
   if (phase === 'lobby-entry') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="grow bg-gray-50 flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5">
           <div className="flex items-center gap-3 mb-1">
             <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-700 text-sm">← Back</button>
@@ -233,7 +245,7 @@ export function MultiplayerPage() {
 
   if (phase === 'lobby-waiting') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="grow bg-gray-50 flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5">
           <div>
             <p className="text-xs text-gray-500 mb-1">Room Code</p>
@@ -272,7 +284,7 @@ export function MultiplayerPage() {
 
   if (phase === 'reveal' && roundReveal) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="grow bg-gray-50 py-8 px-4">
         <div className="max-w-xl mx-auto space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">Round {roundReveal.round + 1} Results</h2>
@@ -319,7 +331,7 @@ export function MultiplayerPage() {
       finalScores.map((s, i) => `${i + 1}. ${s.nickname} — ${s.totalScore} pts`).join('\n');
 
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="grow bg-gray-50 py-8 px-4">
         <div className="max-w-xl mx-auto space-y-5">
           <h2 className="text-2xl font-black text-gray-900 text-center">Final Scores</h2>
 
@@ -367,14 +379,14 @@ export function MultiplayerPage() {
   // Playing phase
   if (!currentRepo) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="grow bg-gray-50 flex items-center justify-center">
         <p className="text-gray-400 animate-pulse">Waiting for round to start…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="grow bg-gray-50 flex flex-col">
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-4 shrink-0">
         <div className="flex-1 text-sm font-semibold text-gray-800 truncate">
           {currentRepo.owner}/{currentRepo.name}

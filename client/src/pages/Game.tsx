@@ -27,7 +27,6 @@ interface GameState {
   results: RoundResult[];
   token: string;
   sessionId: string;
-  timerKey: number;
 }
 
 async function fetchSession(mode: string, date?: string): Promise<{ token: string; repos: RepoForGame[] }> {
@@ -66,13 +65,12 @@ async function submitScore(
   token: string,
   nickname: string,
   mode: string,
-  guesses: number[],
-  timestamps: number[]
+  guesses: number[]
 ): Promise<{ rank: number; score: number }> {
   const res = await fetch('/api/leaderboard', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, nickname, mode, guesses, timestamps }),
+    body: JSON.stringify({ token, nickname, mode, guesses }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: 'Failed to submit' })) as { error: string };
@@ -97,7 +95,6 @@ export function GamePage() {
   const [loadingFile, setLoadingFile] = useState(false);
 
   const guessesRef = useRef<number[]>([]);
-  const timestampsRef = useRef<number[]>([]);
   const sessionIdRef = useRef(Math.random().toString(36).slice(2));
 
   useEffect(() => {
@@ -118,7 +115,6 @@ export function GamePage() {
         const completedRounds = saved.results.length;
         const totalRounds = saved.repos.length;
         guessesRef.current = saved.guesses;
-        timestampsRef.current = saved.timestamps;
 
         if (completedRounds >= totalRounds) {
           // All rounds done but game never reached "finished" (closed on last reveal).
@@ -126,9 +122,9 @@ export function GamePage() {
           const totalScore = saved.results.reduce((s, r) => s + r.score, 0);
           setDailyResult({ date: today, score: totalScore, guesses: saved.guesses, repoIds: saved.repos.map(r => r.id) });
           clearDailySession(today);
-          setGame({ phase: 'finished', currentRound: totalRounds - 1, repos: saved.repos, results: saved.results, token: saved.token, sessionId: saved.sessionId, timerKey: totalRounds - 1 });
+          setGame({ phase: 'finished', currentRound: totalRounds - 1, repos: saved.repos, results: saved.results, token: saved.token, sessionId: saved.sessionId });
         } else {
-          setGame({ phase: 'playing', currentRound: completedRounds, repos: saved.repos, results: saved.results, token: saved.token, sessionId: saved.sessionId, timerKey: completedRounds });
+          setGame({ phase: 'playing', currentRound: completedRounds, repos: saved.repos, results: saved.results, token: saved.token, sessionId: saved.sessionId });
         }
         setLoading(false);
         return;
@@ -144,7 +140,6 @@ export function GamePage() {
           results: [],
           token,
           sessionId: sessionIdRef.current,
-          timerKey: 0,
         });
         setLoading(false);
       })
@@ -185,11 +180,10 @@ export function GamePage() {
     setFileContent(null);
   }, []);
 
-  const handleGuessSubmit = useCallback(async (guess: number, _secondsRemaining: number) => {
+  const handleGuessSubmit = useCallback(async (guess: number) => {
     if (!game || !currentRepo) return;
 
     guessesRef.current[game.currentRound] = guess;
-    timestampsRef.current[game.currentRound] = Date.now();
 
     const stars = await fetchStars(currentRepo.id);
     const score = computeRoundScore(guess, stars);
@@ -211,7 +205,6 @@ export function GamePage() {
         repos: game.repos,
         results: [...game.results, result],
         guesses: guessesRef.current.slice(),
-        timestamps: timestampsRef.current.slice(),
         sessionId: game.sessionId,
       });
     }
@@ -238,14 +231,7 @@ export function GamePage() {
       }
     } else {
       setGame(g =>
-        g
-          ? {
-              ...g,
-              phase: 'playing',
-              currentRound: nextRound,
-              timerKey: g.timerKey + 1,
-            }
-          : g
+        g ? { ...g, phase: 'playing', currentRound: nextRound } : g
       );
     }
   }, [game, validMode]);
@@ -253,7 +239,7 @@ export function GamePage() {
   const handleSubmitToLeaderboard = useCallback(
     async (nickname: string) => {
       if (!game || !validMode) throw new Error('No game state');
-      return submitScore(game.token, nickname, validMode, guessesRef.current, timestampsRef.current);
+      return submitScore(game.token, nickname, validMode, guessesRef.current);
     },
     [game, validMode]
   );
@@ -262,7 +248,7 @@ export function GamePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="grow bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-3xl mb-3 animate-spin">⭐</div>
           <p className="text-gray-500">Loading repos…</p>
@@ -273,7 +259,7 @@ export function GamePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="grow bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <p className="text-red-600 font-medium mb-2">{error}</p>
           <p className="text-sm text-gray-500 mb-4">
@@ -291,7 +277,7 @@ export function GamePage() {
 
   if (game.phase === 'finished') {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="grow bg-gray-50 py-8">
         <div className="max-w-xl mx-auto px-4">
           <div className="relative flex items-center justify-center mb-6">
             <button onClick={() => navigate('/')} className="absolute left-0 text-gray-400 hover:text-gray-700 text-sm">
@@ -316,7 +302,7 @@ export function GamePage() {
   if (game.phase === 'reveal' && game.results.length > 0) {
     const lastResult = game.results[game.results.length - 1];
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="grow bg-gray-50 py-8">
         <div className="max-w-xl mx-auto px-4">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-sm text-gray-500">
@@ -355,7 +341,7 @@ export function GamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8fa]">
+    <div className="grow bg-[#f6f8fa]">
       {/* GitHub dark nav */}
       <nav className="bg-[#24292f] z-20">
         <div className="px-4 py-2.5 flex items-center gap-3">
@@ -422,8 +408,7 @@ export function GamePage() {
         <aside className="hidden sm:block w-80 shrink-0 border-r border-[#d0d7de]">
           <div className="sticky top-0 p-4 bg-[#f6f8fa]">
             <GuessInput
-              key={game.timerKey}
-              timerKey={game.timerKey}
+              key={game.currentRound}
               onSubmit={handleGuessSubmit}
               disabled={game.phase !== 'playing'}
               round={game.currentRound}
@@ -437,7 +422,7 @@ export function GamePage() {
           <div className="p-4 pb-36 sm:pb-4">
             {/* Compact file browser */}
             <FileBrowser
-              key={game.timerKey}
+              key={game.currentRound}
               repoId={currentRepo.id}
               nodes={currentRepo.file_tree}
               onFileSelect={handleFileSelect}
@@ -532,8 +517,7 @@ export function GamePage() {
       {/* Mobile: sticky bottom guess bar */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#d0d7de] p-3 shadow-lg z-10">
         <GuessInput
-          key={game.timerKey}
-          timerKey={game.timerKey}
+          key={game.currentRound}
           onSubmit={handleGuessSubmit}
           disabled={game.phase !== 'playing'}
           round={game.currentRound}

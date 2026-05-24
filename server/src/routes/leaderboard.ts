@@ -50,12 +50,11 @@ router.post('/', (req: Request, res: Response) => {
     return;
   }
 
-  const { token, nickname, mode, guesses, timestamps } = req.body as {
+  const { token, nickname, mode, guesses } = req.body as {
     token?: unknown;
     nickname?: unknown;
     mode?: unknown;
     guesses?: unknown;
-    timestamps?: unknown;
   };
 
   if (typeof token !== 'string') {
@@ -88,17 +87,6 @@ router.post('/', (req: Request, res: Response) => {
     }
   }
 
-  if (!Array.isArray(timestamps) || timestamps.length !== 5) {
-    res.status(400).json({ error: 'timestamps must be array of 5 numbers' });
-    return;
-  }
-  for (const t of timestamps) {
-    if (typeof t !== 'number' || !Number.isFinite(t)) {
-      res.status(400).json({ error: 'Each timestamp must be a number' });
-      return;
-    }
-  }
-
   let payload: SessionPayload;
   try {
     payload = jwt.verify(token, process.env.JWT_SECRET!) as SessionPayload;
@@ -113,7 +101,7 @@ router.post('/', (req: Request, res: Response) => {
   }
 
   const submissionTime = Date.now() / 1000;
-  if (submissionTime - payload.iat < 50) {
+  if (submissionTime - payload.iat < 5) {
     res.status(400).json({ error: 'Submission too fast' });
     return;
   }
@@ -134,21 +122,13 @@ router.post('/', (req: Request, res: Response) => {
     starsPerRepo.push(stars);
   }
 
-  const ROUND_DURATION_S = 90;
   let totalScore = 0;
-  const roundStartTime = payload.iat;
-
   for (let i = 0; i < 5; i++) {
-    const submitTs = timestamps[i] / 1000;
-    const roundStart = roundStartTime + i * (ROUND_DURATION_S + 5);
-    const elapsed = Math.max(0, Math.min(ROUND_DURATION_S, submitTs - roundStart));
-    const secondsRemaining = ROUND_DURATION_S - elapsed;
-    totalScore += computeRoundScore(guesses[i] as number, starsPerRepo[i], secondsRemaining);
+    totalScore += computeRoundScore(guesses[i] as number, starsPerRepo[i]);
   }
+  totalScore = Math.min(totalScore, 5000);
 
-  totalScore = Math.min(totalScore, 6000);
-
-  if (totalScore < 0 || totalScore > 6000 || !Number.isInteger(totalScore)) {
+  if (totalScore < 0 || totalScore > 5000 || !Number.isInteger(totalScore)) {
     res.status(400).json({ error: 'Invalid computed score' });
     return;
   }
