@@ -1,0 +1,14 @@
+FROM node:20-alpine
+WORKDIR /app
+
+RUN apk add --no-cache python3 make g++
+
+COPY scripts/package*.json scripts/tsconfig.json ./
+RUN npm ci
+
+COPY scripts/fetch-repos.ts ./
+
+ENV DATA_DIR=/data
+RUN mkdir -p /data
+
+CMD ["npx", "ts-node", "--project", "tsconfig.json", "fetch-repos.ts"]

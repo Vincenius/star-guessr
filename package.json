@@ -1,0 +1,15 @@
+{
+  "name": "star-guessr",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client && npm run build --prefix server",
+    "start": "npm run start --prefix server",
+    "fetch-repos": "npm run fetch --prefix scripts",
+    "fetch-repos-dry-run": "npm run fetch-dry-run --prefix scripts"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

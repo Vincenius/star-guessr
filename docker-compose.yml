@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      PORT: 3000
+      NODE_ENV: production
+    volumes:
+      - sqlite-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/leaderboard/unlimited"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # One-shot service to populate the database.
+  # Run with: docker compose run --rm fetch
+  # WARNING: takes 30–60 minutes due to GitHub API rate limits.
+  fetch:
+    build:
+      context: .
+      dockerfile: Dockerfile.fetch
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN:?GITHUB_TOKEN is required for fetch}
+    volumes:
+      - sqlite-data:/data
+    profiles:
+      - fetch
+
+volumes:
+  sqlite-data:
+    driver: local
