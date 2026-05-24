@@ -124,7 +124,6 @@ export function Scoreboard({ results, mode, date, onSubmitToLeaderboard, onPlayA
     ? leaderboard.filter(e => e.score > totalScore).length + 1
     : null;
 
-  const shareRank = submitResult?.rank ?? projectedRank;
   const shareText = buildShareText(results, totalScore, mode, date);
 
   const encodedText = encodeURIComponent(shareText);
