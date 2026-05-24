@@ -1,5 +1,5 @@
 /**
- * Fetches ~10,000 most-starred non-fork GitHub repositories and stores them in SQLite.
+ * Fetches ~3,000 non-fork GitHub repositories across a wide star spread (20–100k+) and stores them in SQLite.
  *
  * Usage:
  *   GITHUB_TOKEN=ghp_... ts-node fetch-repos.ts
@@ -240,18 +240,19 @@ async function searchRepos(query: string, page: number): Promise<{ items: GHRepo
   return result ?? { items: [], total_count: 0 };
 }
 
-// Star ranges to cover ~10,000 repos (GitHub search caps at 1000 results per query)
+// Star ranges to cover ~3,000 repos across a wide spread (30–100k+).
+// Each range is capped at 3 pages (300 repos), 10 ranges × 300 = ~3,000 total.
 const STAR_RANGES = [
   'stars:>100000',
-  'stars:50000..99999',
-  'stars:25000..49999',
-  'stars:12000..24999',
-  'stars:6000..11999',
-  'stars:3000..5999',
-  'stars:1500..2999',
-  'stars:800..1499',
-  'stars:400..799',
-  'stars:200..399',
+  'stars:40000..99999',
+  'stars:15000..39999',
+  'stars:6000..14999',
+  'stars:2500..5999',
+  'stars:1000..2499',
+  'stars:400..999',
+  'stars:150..399',
+  'stars:60..149',
+  'stars:20..59',
 ];
 
 async function main() {
@@ -277,7 +278,7 @@ async function main() {
     let pagesFetched = 0;
 
     try {
-      while (page <= 10) { // max 1000 per range
+      while (page <= 3) { // max 300 per range
         const { items } = await searchRepos(`fork:false ${range}`, page);
         if (items.length === 0) {
           console.log(`  No more items at page ${page}. Ending range.`);
