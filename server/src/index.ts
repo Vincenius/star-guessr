@@ -46,6 +46,7 @@ app.use(
         baseUri: ["'self'"],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
+        workerSrc: ["'self'", "blob:"],
       },
     },
     referrerPolicy: { policy: 'no-referrer' },
