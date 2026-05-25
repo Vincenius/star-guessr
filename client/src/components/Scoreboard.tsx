@@ -17,7 +17,7 @@ function roundEmoji(score: number): string {
   return '🟥';
 }
 
-const EPOCH_MS = new Date('2026-05-24').getTime();
+const EPOCH_MS = new Date('2026-05-25').getTime();
 
 function dailyNumber(date: string): number {
   return Math.round((new Date(date).getTime() - EPOCH_MS) / 86_400_000) + 1;
