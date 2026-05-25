@@ -50,6 +50,7 @@ export function MultiplayerPage() {
   const [readme, setReadme] = useState<string | null>(null);
 
   const submittedPlayersRef = useRef<Set<string>>(new Set());
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -120,11 +121,14 @@ export function MultiplayerPage() {
     socket.on('game:round:end', (data: RoundReveal) => {
       setRoundReveal(data);
       setPhase('reveal');
-      const cd = 20;
-      setCountdown(cd);
-      const iv = setInterval(() => {
+      setCountdown(20);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = setInterval(() => {
         setCountdown(c => {
-          if (c <= 1) { clearInterval(iv); return 0; }
+          if (c <= 1) {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            return 0;
+          }
           return c - 1;
         });
       }, 1000);
@@ -145,6 +149,7 @@ export function MultiplayerPage() {
 
     return () => {
       socket.disconnect();
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
   }, []);
 

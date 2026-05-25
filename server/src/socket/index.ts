@@ -412,10 +412,29 @@ export function registerSocketHandlers(io: IOServer) {
 
       io.to(code).emit('player:reconnected', { playerId: oldPlayerId, nickname: player.nickname });
 
-      if (room.phase === 'playing') {
+      if (room.phase === 'waiting') {
+        const playerList = Array.from(room.players.values()).map(p => ({
+          id: p.id,
+          nickname: p.nickname,
+          connected: p.connected,
+          isHost: p.id === room.hostId,
+        }));
+        socket.emit('room:updated', { players: playerList, phase: room.phase, currentRound: room.currentRound });
+      } else if (room.phase === 'playing') {
         const repo = sanitizeRepoForGame(room.repos[room.currentRound]);
         const elapsed = (Date.now() - room.roundStartTime) / 1000;
         socket.emit('game:round:start', { round: room.currentRound, repo, elapsed });
+      } else if (room.phase === 'finished') {
+        const scores = Array.from(room.players.values()).map(p => ({
+          playerId: p.id,
+          nickname: p.nickname,
+          totalScore: p.scores.reduce((a, b) => a + b, 0),
+          roundScores: [...p.scores],
+          roundGuesses: [...p.guesses],
+          connected: p.connected,
+        }));
+        scores.sort((a, b) => b.totalScore - a.totalScore);
+        socket.emit('game:finished', { scores });
       }
     });
   });

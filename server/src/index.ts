@@ -37,10 +37,10 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://analytics.vincentwill.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'https:', 'data:'],
-        connectSrc: ["'self'", 'ws://localhost:*', 'wss:'],
+        connectSrc: ["'self'", 'ws://localhost:*', 'wss:', 'https://analytics.vincentwill.com'],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
