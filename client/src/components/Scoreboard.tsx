@@ -61,12 +61,16 @@ export function Scoreboard({ results, mode, date, onSubmitToLeaderboard, onPlayA
     const count = Math.max(1, Math.round(ratio * 5));
     const duration = Math.max(500, Math.round(ratio * 3000));
     const end = Date.now() + duration;
+    // Use useWorker:false to avoid blob: Web Worker CSP issues
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fire = confetti.create(null as any, { resize: true, useWorker: false });
     const frame = () => {
-      void confetti({ particleCount: count, angle: 60, spread: 55, origin: { x: 0 } });
-      void confetti({ particleCount: count, angle: 120, spread: 55, origin: { x: 1 } });
+      void fire({ particleCount: count, angle: 60, spread: 55, origin: { x: 0 } });
+      void fire({ particleCount: count, angle: 120, spread: 55, origin: { x: 1 } });
       if (Date.now() < end) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+    return () => fire.reset();
   }, [totalScore]);
 
   const fetchLeaderboard = useCallback(async () => {

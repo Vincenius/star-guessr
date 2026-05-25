@@ -276,8 +276,13 @@ async function main() {
   const isDryRun = process.argv.includes('--dry-run');
   const DRY_RUN_LIMIT = 50;
 
+  const limitArg = process.argv.indexOf('--limit');
+  const MAX_REPOS = limitArg !== -1 ? parseInt(process.argv[limitArg + 1], 10) : Infinity;
+
   if (isDryRun) {
     console.log(`StarGuessr — DRY RUN (first ${DRY_RUN_LIMIT} repos only)\n`);
+  } else if (isFinite(MAX_REPOS)) {
+    console.log(`StarGuessr — Fetching up to ${MAX_REPOS} repos from GitHub…\n`);
   } else {
     console.log('StarGuessr — Fetching repos from GitHub…');
     console.log('This will take 30–60 minutes due to API rate limits.\n');
@@ -304,7 +309,7 @@ async function main() {
 
       for (const repo of items) {
         if (repo.fork) continue;
-        if (totalFetched >= DRY_RUN_LIMIT && isDryRun) break;
+        if ((isDryRun && totalFetched >= DRY_RUN_LIMIT) || totalFetched >= MAX_REPOS) break;
 
         try {
           const progress = `[${totalFetched + 1}]`;
@@ -333,7 +338,7 @@ async function main() {
         console.log(`  Fewer than 100 items on page ${page}, moving to next range.`);
         break;
       }
-      if (isDryRun && totalFetched >= DRY_RUN_LIMIT) break;
+      if ((isDryRun && totalFetched >= DRY_RUN_LIMIT) || totalFetched >= MAX_REPOS) break;
       page++;
 
       // Brief pause between pages
@@ -341,6 +346,7 @@ async function main() {
     }
 
     console.log(`  Fetched ${rangeCount} repos across ${pagesFetched} pages in range "${range}"`);
+    if (totalFetched >= MAX_REPOS) break;;
 
     const currentCount = db.prepare('SELECT COUNT(*) as cnt FROM repos_staging').get() as { cnt: number };
     console.log(`  Staging so far: ${currentCount.cnt}`);
