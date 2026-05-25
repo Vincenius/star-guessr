@@ -413,15 +413,19 @@ export function MultiplayerPage() {
     const shareText = `StarGuessr Multiplayer — Room ${myRoomCode}\n` +
       finalScores.map((s, i) => `${i + 1}. ${s.nickname} — ${s.totalScore} pts`).join('\n');
 
+    const handlePlayAgain = () => {
+      setFinalScores([]);
+      setCurrentRound(0);
+      if (isHost) {
+        socketRef.current?.emit('room:start', { code: myRoomCode });
+      }
+      setPhase('lobby-waiting');
+    };
+
     return (
       <div className="grow bg-[#f6f8fa] py-8 px-4">
         <div className="max-w-xl mx-auto space-y-4">
-          <div className="relative flex items-center justify-center mb-2">
-            <button onClick={() => navigate('/')} className="absolute left-0 text-[#656d76] hover:text-[#1f2328] text-sm">
-              ← Home
-            </button>
-            <h2 className="text-xl font-bold text-[#1f2328]">Final Scores</h2>
-          </div>
+          <h2 className="text-xl font-bold text-[#1f2328] text-center">Final Scores</h2>
 
           <div className="bg-white border border-[#d0d7de] rounded-md overflow-hidden">
             <div className="px-4 py-2.5 bg-[#f6f8fa] border-b border-[#d0d7de]">
@@ -431,35 +435,47 @@ export function MultiplayerPage() {
               {finalScores.map((s, i) => (
                 <div
                   key={s.playerId}
-                  className={`flex items-center gap-3 px-4 py-3 ${i === 0 ? 'bg-amber-50' : ''}`}
+                  className={`flex items-start gap-3 px-4 py-3 ${i === 0 ? 'bg-amber-50' : ''}`}
                 >
-                  <span className="text-base w-6 shrink-0">
+                  <span className="text-base w-6 shrink-0 mt-0.5">
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="text-sm text-[#656d76] tabular-nums">#{i + 1}</span>}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className={`font-semibold truncate ${s.playerId === myPlayerId ? 'text-[#0969da]' : 'text-[#1f2328]'}`}>
                       {s.nickname}{s.playerId === myPlayerId ? ' (you)' : ''}
                     </p>
-                    <p className="text-xs text-[#656d76]">
-                      {s.roundScores.map((rs, ri) => `R${ri + 1}: ${rs}`).join(' · ')}
-                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {s.roundScores.map((rs, ri) => (
+                        <span key={ri} className="inline-flex items-center gap-1 text-xs bg-[#f6f8fa] border border-[#d0d7de] rounded-full px-2 py-0.5">
+                          <span className="text-[#8c959f]">R{ri + 1}</span>
+                          <span className="font-semibold text-[#0969da] tabular-nums">{rs}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <span className="text-lg font-black text-[#0969da] tabular-nums">{s.totalScore}</span>
+                  <span className="text-lg font-black text-[#0969da] tabular-nums mt-0.5">{s.totalScore}</span>
                 </div>
               ))}
             </div>
           </div>
 
+          <button
+            onClick={handlePlayAgain}
+            className="w-full py-3 bg-[#2da44e] hover:bg-[#2c974b] text-white text-sm font-semibold rounded-md transition-colors border border-[#1f883d] border-opacity-40"
+          >
+            {isHost ? 'Play Again' : 'Play Again (waiting for host)'}
+          </button>
+
           <div className="flex gap-3">
             <button
               onClick={() => { void navigator.clipboard.writeText(shareText); }}
-              className="flex-1 py-2.5 border border-[#d0d7de] text-sm font-medium rounded-md text-[#1f2328] hover:bg-[#f6f8fa] transition-colors"
+              className="flex-1 py-2.5 border border-[#d0d7de] text-sm font-medium rounded-md text-[#1f2328] hover:bg-white transition-colors"
             >
               Copy Result
             </button>
             <button
               onClick={() => navigate('/')}
-              className="flex-1 py-2.5 bg-[#2da44e] hover:bg-[#2c974b] text-white text-sm font-semibold rounded-md transition-colors border border-[#1f883d] border-opacity-40"
+              className="flex-1 py-2.5 border border-[#d0d7de] text-sm font-medium rounded-md text-[#1f2328] hover:bg-white transition-colors"
             >
               Home
             </button>
