@@ -67,11 +67,10 @@ export function HomePage() {
           <button
             onClick={() => navigate('/game/daily')}
             disabled={!!dailyResult}
-            className={`w-full text-left rounded-2xl p-5 border transition-all ${
-              dailyResult
+            className={`w-full text-left rounded-2xl p-5 border transition-all ${dailyResult
                 ? 'bg-white border-gray-200 cursor-default opacity-80'
                 : 'bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300'
-            }`}
+              }`}
           >
             <div className="flex items-start justify-between">
               <div>
@@ -105,7 +104,6 @@ export function HomePage() {
                   {unlimitedBest ? 'Keep beating your best score' : 'Random repos · unlimited plays'}
                 </p>
               </div>
-              <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2.5 py-0.5 font-semibold shrink-0 ml-3">∞</span>
             </div>
             {unlimitedBest && (
               <div className="mt-3 pt-3 border-t border-gray-100">
