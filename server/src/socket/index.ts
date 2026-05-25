@@ -322,7 +322,7 @@ export function registerSocketHandlers(io: IOServer) {
         socket.emit('room:error', { message: 'Only host can start the game' });
         return;
       }
-      if (room.phase !== 'waiting') {
+      if (room.phase !== 'waiting' && room.phase !== 'finished') {
         socket.emit('room:error', { message: 'Game already started' });
         return;
       }
@@ -339,6 +339,11 @@ export function registerSocketHandlers(io: IOServer) {
       }
       room.repos = records.map(toRepoForGame);
       room.currentRound = 0;
+      for (const player of room.players.values()) {
+        player.scores = [];
+        player.guesses = [];
+        player.submitted = [];
+      }
 
       io.to(code).emit('game:start', { totalRounds: 5 });
       startRound(io, room);
