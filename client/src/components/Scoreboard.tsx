@@ -5,7 +5,7 @@ import { formatStars } from '../utils/scoring';
 
 interface Props {
   results: RoundResult[];
-  mode: 'daily' | 'unlimited';
+  mode: 'daily' | 'freeplay';
   date?: string;
   onSubmitToLeaderboard?: (nickname: string) => Promise<{ rank: number; score: number }>;
   onPlayAgain: () => void;
@@ -27,7 +27,7 @@ function dailyNumber(date: string): number {
 function buildShareText(
   results: RoundResult[],
   totalScore: number,
-  mode: 'daily' | 'unlimited',
+  mode: 'daily' | 'freeplay',
   date?: string,
 ): string {
   const blocks = results.map(r => roundEmoji(r.score)).join('');
@@ -73,7 +73,7 @@ export function Scoreboard({ results, mode, date, onSubmitToLeaderboard, onPlayA
     try {
       const url = mode === 'daily' && date
         ? `/api/leaderboard/daily?date=${date}`
-        : '/api/leaderboard/unlimited';
+        : '/api/leaderboard/freeplay';
       const res = await fetch(url);
       if (res.ok) setLeaderboard(await res.json() as LeaderboardEntry[]);
     } catch {

@@ -27,8 +27,8 @@ router.get('/', (req: Request, res: Response) => {
   const mode = req.query.mode as string;
   const date = req.query.date as string | undefined;
 
-  if (mode !== 'daily' && mode !== 'unlimited') {
-    res.status(400).json({ error: 'mode must be "daily" or "unlimited"' });
+  if (mode !== 'daily' && mode !== 'freeplay') {
+    res.status(400).json({ error: 'mode must be "daily" or "freeplay"' });
     return;
   }
 

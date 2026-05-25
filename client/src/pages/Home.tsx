@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDailyResult, getUnlimitedBest } from '../utils/storage';
+import { getDailyResult, getFreeplayBest } from '../utils/storage';
 import { todayUTC } from '../utils/scoring';
 
 function ScoreBar({ score, max = 5000 }: { score: number; max?: number }) {
@@ -41,7 +41,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const today = todayUTC();
   const dailyResult = getDailyResult(today);
-  const unlimitedBest = getUnlimitedBest();
+  const freeplayBest = getFreeplayBest();
   const [countdown, setCountdown] = React.useState(msUntilMidnightUTC());
 
   React.useEffect(() => {
@@ -92,31 +92,31 @@ export function HomePage() {
             {dailyResult && <ScoreBar score={dailyResult.score} />}
           </button>
 
-          {/* Unlimited */}
+          {/* Freeplay */}
           <button
-            onClick={() => navigate('/game/unlimited')}
+            onClick={() => navigate('/game/freeplay')}
             className="w-full text-left bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all"
           >
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Unlimited</h2>
+                <h2 className="text-base font-bold text-gray-900">Freeplay</h2>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {unlimitedBest ? 'Keep beating your best score' : 'Random repos · unlimited plays'}
+                  {freeplayBest ? 'Keep beating your best score' : 'Random repos · unlimited plays'}
                 </p>
               </div>
             </div>
-            {unlimitedBest && (
+            {freeplayBest && (
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Personal best</span>
                   <span className="text-sm font-bold text-gray-800">
-                    {unlimitedBest.score.toLocaleString()} <span className="text-gray-400 font-normal">/ 5,000</span>
+                    {freeplayBest.score.toLocaleString()} <span className="text-gray-400 font-normal">/ 5,000</span>
                   </span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-500 rounded-full"
-                    style={{ width: `${Math.min(100, (unlimitedBest.score / 5000) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (freeplayBest.score / 5000) * 100)}%` }}
                   />
                 </div>
               </div>

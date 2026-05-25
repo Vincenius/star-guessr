@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { LeaderboardEntry } from '../types';
 import { todayUTC } from '../utils/scoring';
 
-type Tab = 'daily-today' | 'daily-alltime' | 'unlimited';
+type Tab = 'daily-today' | 'daily-alltime' | 'freeplay';
 
 async function fetchLeaderboard(tab: Tab): Promise<LeaderboardEntry[]> {
   let url: string;
   if (tab === 'daily-today') url = `/api/leaderboard/daily?date=${todayUTC()}`;
   else if (tab === 'daily-alltime') url = '/api/leaderboard/daily/alltime';
-  else url = '/api/leaderboard/unlimited';
+  else url = '/api/leaderboard/freeplay';
 
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to load leaderboard');
@@ -42,7 +42,7 @@ export function LeaderboardPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'daily-today', label: 'Today' },
     { id: 'daily-alltime', label: 'All-time Daily' },
-    { id: 'unlimited', label: 'Unlimited' },
+    { id: 'freeplay', label: 'Freeplay' },
   ];
 
   return (

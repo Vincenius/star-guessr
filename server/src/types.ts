@@ -52,7 +52,7 @@ export interface LeaderboardEntry {
 
 export interface SessionPayload {
   game_id: string;
-  mode: 'daily' | 'unlimited';
+  mode: 'daily' | 'freeplay';
   game_date?: string;
   repo_ids: number[];
   iat: number;

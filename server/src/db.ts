@@ -29,6 +29,7 @@ function migrateSchema(db: Database.Database): void {
   if (!cols.includes('default_branch')) {
     db.exec("ALTER TABLE repos ADD COLUMN default_branch TEXT NOT NULL DEFAULT 'main'");
   }
+  db.exec("UPDATE leaderboard SET mode = 'freeplay' WHERE mode = 'unlimited'");
 }
 
 function initSchema(db: Database.Database): void {
@@ -149,11 +150,11 @@ export function getDailyAlltimeLeaderboard(): import('./types').LeaderboardEntry
     .all('daily') as import('./types').LeaderboardEntry[];
 }
 
-export function getUnlimitedLeaderboard(): import('./types').LeaderboardEntry[] {
+export function getFreeplayLeaderboard(): import('./types').LeaderboardEntry[] {
   const db = getDb();
   return db
     .prepare('SELECT * FROM leaderboard WHERE mode = ? ORDER BY score DESC LIMIT 50')
-    .all('unlimited') as import('./types').LeaderboardEntry[];
+    .all('freeplay') as import('./types').LeaderboardEntry[];
 }
 
 export function getDailyRank(score: number, date: string): number {
@@ -164,10 +165,10 @@ export function getDailyRank(score: number, date: string): number {
   return row.cnt + 1;
 }
 
-export function getUnlimitedRank(score: number): number {
+export function getFreeplayRank(score: number): number {
   const db = getDb();
   const row = db
     .prepare('SELECT COUNT(*) as cnt FROM leaderboard WHERE mode = ? AND score > ?')
-    .get('unlimited', score) as { cnt: number };
+    .get('freeplay', score) as { cnt: number };
   return row.cnt + 1;
 }

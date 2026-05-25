@@ -4,11 +4,11 @@ import leoProfanity from 'leo-profanity';
 import {
   getDailyLeaderboard,
   getDailyAlltimeLeaderboard,
-  getUnlimitedLeaderboard,
+  getFreeplayLeaderboard,
   insertLeaderboardEntry,
   getRepoStars,
   getDailyRank,
-  getUnlimitedRank,
+  getFreeplayRank,
 } from '../db';
 import { computeRoundScore } from '../scoring';
 import { SessionPayload } from '../types';
@@ -39,8 +39,8 @@ router.get('/daily/alltime', (_req: Request, res: Response) => {
   res.json(getDailyAlltimeLeaderboard());
 });
 
-router.get('/unlimited', (_req: Request, res: Response) => {
-  res.json(getUnlimitedLeaderboard());
+router.get('/freeplay', (_req: Request, res: Response) => {
+  res.json(getFreeplayLeaderboard());
 });
 
 router.post('/', (req: Request, res: Response) => {
@@ -65,8 +65,8 @@ router.post('/', (req: Request, res: Response) => {
     res.status(400).json({ error: 'nickname required' });
     return;
   }
-  if (typeof mode !== 'string' || (mode !== 'daily' && mode !== 'unlimited')) {
-    res.status(400).json({ error: 'mode must be "daily" or "unlimited"' });
+  if (typeof mode !== 'string' || (mode !== 'daily' && mode !== 'freeplay')) {
+    res.status(400).json({ error: 'mode must be "daily" or "freeplay"' });
     return;
   }
 
@@ -138,7 +138,7 @@ router.post('/', (req: Request, res: Response) => {
 
   const rank = mode === 'daily' && game_date
     ? getDailyRank(totalScore, game_date)
-    : getUnlimitedRank(totalScore);
+    : getFreeplayRank(totalScore);
 
   res.json({ id, score: totalScore, rank });
 });

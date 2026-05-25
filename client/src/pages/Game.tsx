@@ -11,7 +11,7 @@ import { todayUTC } from '../utils/scoring';
 import {
   getDailyResult,
   setDailyResult,
-  setUnlimitedBest,
+  setFreeplayBest,
   getDailySession,
   setDailySession,
   clearDailySession,
@@ -82,7 +82,7 @@ async function submitScore(
 export function GamePage() {
   const { mode } = useParams<{ mode: string }>();
   const navigate = useNavigate();
-  const validMode = mode === 'daily' || mode === 'unlimited' ? mode : null;
+  const validMode = mode === 'daily' || mode === 'freeplay' ? mode : null;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -226,8 +226,8 @@ export function GamePage() {
           guesses: guessesRef.current,
           repoIds: game.repos.map(r => r.id),
         });
-      } else if (validMode === 'unlimited') {
-        setUnlimitedBest(totalScore);
+      } else if (validMode === 'freeplay') {
+        setFreeplayBest(totalScore);
       }
     } else {
       setGame(g =>
@@ -284,7 +284,7 @@ export function GamePage() {
               ← Home
             </button>
             <h1 className="text-xl font-bold text-gray-900">
-              {validMode === 'daily' ? 'Daily Challenge' : 'Unlimited'} — Results
+              {validMode === 'daily' ? 'Daily Challenge' : 'Freeplay'} — Results
             </h1>
           </div>
           <Scoreboard

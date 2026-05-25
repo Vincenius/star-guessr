@@ -40,7 +40,7 @@ export interface LeaderboardEntry {
   game_date: string | null;
 }
 
-export type GameMode = 'daily' | 'unlimited' | 'multiplayer';
+export type GameMode = 'daily' | 'freeplay' | 'multiplayer';
 export type GamePhase = 'playing' | 'reveal' | 'finished';
 
 export interface RoundResult {

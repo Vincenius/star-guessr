@@ -64,21 +64,21 @@ export function clearDailySession(date: string): void {
   }
 }
 
-export function getUnlimitedBest(): PersonalBest | null {
+export function getFreeplayBest(): PersonalBest | null {
   try {
-    const raw = localStorage.getItem('unlimited_best');
+    const raw = localStorage.getItem('freeplay_best') ?? localStorage.getItem('unlimited_best');
     return raw ? (JSON.parse(raw) as PersonalBest) : null;
   } catch {
     return null;
   }
 }
 
-export function setUnlimitedBest(score: number): void {
+export function setFreeplayBest(score: number): void {
   try {
-    const current = getUnlimitedBest();
+    const current = getFreeplayBest();
     if (!current || score > current.score) {
       const pb: PersonalBest = { score, date: new Date().toISOString() };
-      localStorage.setItem('unlimited_best', JSON.stringify(pb));
+      localStorage.setItem('freeplay_best', JSON.stringify(pb));
     }
   } catch {
     // storage unavailable
