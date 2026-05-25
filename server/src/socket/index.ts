@@ -9,8 +9,7 @@ const ROOM_CODE_RE = /^[A-Z0-9]{6}$/;
 const NICKNAME_RE = /^[a-zA-Z0-9 _-]{2,20}$/;
 const REPEAT_CHAR_RE = /(.)\1{4,}/;
 const ROUND_DURATION_S = 90;
-const REVEAL_DURATION_S = 15;
-const COUNTDOWN_DURATION_S = 5;
+const REVEAL_DURATION_S = 12;
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 
 interface Player {
@@ -86,6 +85,19 @@ function broadcastRoomState(io: IOServer, room: Room) {
   io.to(room.code).emit('room:updated', { players: playerList, phase: room.phase, currentRound: room.currentRound });
 }
 
+function advanceFromReveal(io: IOServer, room: Room) {
+  if (room.countdownTimer) {
+    clearTimeout(room.countdownTimer);
+    room.countdownTimer = null;
+  }
+  if (room.currentRound < 4) {
+    room.currentRound++;
+    startRound(io, room);
+  } else {
+    endGame(io, room);
+  }
+}
+
 function endRound(io: IOServer, room: Room) {
   if (room.roundTimer) {
     clearTimeout(room.roundTimer);
@@ -117,16 +129,12 @@ function endRound(io: IOServer, room: Room) {
     round: roundIdx,
     stars: repo.stars,
     reveals,
+    revealDuration: REVEAL_DURATION_S,
   });
 
   room.countdownTimer = setTimeout(() => {
-    if (room.currentRound < 4) {
-      room.currentRound++;
-      startRound(io, room);
-    } else {
-      endGame(io, room);
-    }
-  }, (REVEAL_DURATION_S + COUNTDOWN_DURATION_S) * 1000);
+    advanceFromReveal(io, room);
+  }, REVEAL_DURATION_S * 1000);
 }
 
 function startRound(io: IOServer, room: Room) {
@@ -374,6 +382,20 @@ export function registerSocketHandlers(io: IOServer) {
       if (allSubmitted) {
         endRound(io, room);
       }
+    });
+
+    socket.on('room:next', (data: unknown) => {
+      if (typeof data !== 'object' || data === null) return;
+      const { code } = data as { code?: unknown };
+      if (typeof code !== 'string' || !ROOM_CODE_RE.test(code)) return;
+
+      const room = rooms.get(code);
+      if (!room || room.phase !== 'reveal') return;
+
+      const requestingPlayer = Array.from(room.players.values()).find(p => p.socketId === socket.id);
+      if (!requestingPlayer || requestingPlayer.id !== room.hostId) return;
+
+      advanceFromReveal(io, room);
     });
 
     socket.on('disconnect', () => {

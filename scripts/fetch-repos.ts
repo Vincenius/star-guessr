@@ -292,15 +292,18 @@ async function main() {
   let totalStored = 0;
 
   const rangesToProcess = isDryRun ? STAR_RANGES.slice(0, 1) : STAR_RANGES;
+  const perRangeLimit = isDryRun ? DRY_RUN_LIMIT : Math.ceil(MAX_REPOS / rangesToProcess.length);
+  const maxPagesPerRange = Math.min(3, Math.ceil(perRangeLimit / 100));
 
   for (const range of rangesToProcess) {
-    console.log(`\nFetching: ${range}`);
+    console.log(`\nFetching: ${range} (limit: ${isFinite(perRangeLimit) ? perRangeLimit : 300} per range)`);
     let page = 1;
     let rangeCount = 0;
+    let rangeStored = 0;
     let pagesFetched = 0;
 
     try {
-      while (page <= 3) { // max 300 per range
+      while (page <= maxPagesPerRange) {
         const { items } = await searchRepos(`fork:false ${range}`, page);
         if (items.length === 0) {
           console.log(`  No more items at page ${page}. Ending range.`);
@@ -309,13 +312,14 @@ async function main() {
 
       for (const repo of items) {
         if (repo.fork) continue;
-        if ((isDryRun && totalFetched >= DRY_RUN_LIMIT) || totalFetched >= MAX_REPOS) break;
+        if (rangeStored >= perRangeLimit) break;
 
         try {
           const progress = `[${totalFetched + 1}]`;
           await fetchAndStore(repo, progress);
           process.stdout.write(`\r  [${totalFetched + 1}] ${repo.full_name} — done\n`);
           totalStored++;
+          rangeStored++;
         } catch (err) {
           process.stdout.write('\n');
           console.warn(`  Warning: failed to fetch details for ${repo.full_name}:`, err);
@@ -333,12 +337,11 @@ async function main() {
       rangeCount += items.length;
       pagesFetched++;
       console.log(`  Page ${page}: ${items.length} items (range total so far: ${rangeCount})`);
-      
-      if (items.length < 100) {
-        console.log(`  Fewer than 100 items on page ${page}, moving to next range.`);
+
+      if (items.length < 100 || rangeStored >= perRangeLimit) {
+        if (items.length < 100) console.log(`  Fewer than 100 items on page ${page}, moving to next range.`);
         break;
       }
-      if ((isDryRun && totalFetched >= DRY_RUN_LIMIT) || totalFetched >= MAX_REPOS) break;
       page++;
 
       // Brief pause between pages
@@ -346,7 +349,7 @@ async function main() {
     }
 
     console.log(`  Fetched ${rangeCount} repos across ${pagesFetched} pages in range "${range}"`);
-    if (totalFetched >= MAX_REPOS) break;;
+
 
     const currentCount = db.prepare('SELECT COUNT(*) as cnt FROM repos_staging').get() as { cnt: number };
     console.log(`  Staging so far: ${currentCount.cnt}`);

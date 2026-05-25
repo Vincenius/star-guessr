@@ -10,7 +10,9 @@ import { formatStars } from '../utils/scoring';
 type Phase = 'lobby-entry' | 'lobby-waiting' | 'playing' | 'reveal' | 'countdown' | 'finished';
 type MobileTab = 'readme' | 'about';
 
-interface RoundReveal extends MultiplayerRoundEnd {}
+interface RoundReveal extends MultiplayerRoundEnd {
+  revealDuration: number;
+}
 
 const langColor: Record<string, string> = {
   JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5',
@@ -137,7 +139,8 @@ export function MultiplayerPage() {
     socket.on('game:round:end', (data: RoundReveal) => {
       setRoundReveal(data);
       setPhase('reveal');
-      setCountdown(20);
+      const duration = data.revealDuration ?? 12;
+      setCountdown(duration);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = setInterval(() => {
         setCountdown(c => {
@@ -327,12 +330,32 @@ export function MultiplayerPage() {
   // ── Round reveal ──────────────────────────────────────────────────────────────
   if (phase === 'reveal' && roundReveal) {
     const sorted = [...roundReveal.reveals].sort((a, b) => b.score - a.score);
+    const revealDuration = roundReveal.revealDuration ?? 12;
+    const isLastRound = roundReveal.round >= 4;
+
+    const handleNext = () => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      socketRef.current?.emit('room:next', { code: myRoomCode });
+    };
+
     return (
       <div className="grow bg-[#f6f8fa] py-8 px-4">
         <div className="max-w-xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-[#1f2328]">Round {roundReveal.round + 1} Results</h2>
-            <span className="text-sm text-[#656d76]">Next round in {countdown}s…</span>
+            {!isHost && (
+              <span className="text-sm text-[#656d76]">
+                {countdown > 0 ? `Next in ${countdown}s…` : 'Loading…'}
+              </span>
+            )}
+          </div>
+
+          {/* Countdown bar */}
+          <div className="h-1 bg-[#d0d7de] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#0969da] rounded-full transition-all duration-1000"
+              style={{ width: `${(countdown / revealDuration) * 100}%` }}
+            />
           </div>
 
           <div className="text-center py-4 bg-white border border-[#d0d7de] rounded-md">
@@ -371,6 +394,15 @@ export function MultiplayerPage() {
               })}
             </div>
           </div>
+
+          {isHost && (
+            <button
+              onClick={handleNext}
+              className="w-full py-2.5 bg-[#2da44e] hover:bg-[#2c974b] text-white text-sm font-semibold rounded-md transition-colors border border-[#1f883d] border-opacity-40"
+            >
+              {isLastRound ? 'See Final Results →' : 'Next Round →'}
+            </button>
+          )}
         </div>
       </div>
     );
