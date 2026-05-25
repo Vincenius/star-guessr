@@ -7,7 +7,7 @@ Guess the GitHub stars of 5 repositories
 - **Unlimited** — random repos, unlimited plays, global leaderboard  
 - **Multiplayer** — real-time rooms, play with friends via a 6-character room code
 
-**Scoring:** logarithmic proximity score (max 1,000) + time bonus (max 200) = up to 1,200 per round, 6,000 total.
+**Scoring:** logarithmic proximity score = up to 1,000 per round, 5,000 total.
 
 ---
 
@@ -111,7 +111,7 @@ star-guessr/
 │   └── src/
 │       ├── pages/    Home, Game, Leaderboard, Multiplayer
 │       ├── components/  FileTree, ReadmeViewer, CommitsList, Timer, GuessInput, PostRound, Scoreboard
-│       ├── hooks/    useCheatDetector, useSocket
+│       ├── hooks/    useSocket
 │       └── utils/    scoring, storage
 ├── server/           Express + Socket.io backend
 │   └── src/

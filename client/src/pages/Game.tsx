@@ -348,7 +348,7 @@ export function GamePage() {
           <button
             className="flex items-center gap-2 shrink-0 cursor-pointer"
             onClick={() => {
-              if (game?.phase === 'playing') {
+              if (game?.phase === 'playing' && validMode !== 'daily') {
                 if (confirm('Leave the current game? Your progress will be lost.')) navigate('/');
               } else {
                 navigate('/');

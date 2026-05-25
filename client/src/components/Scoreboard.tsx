@@ -142,7 +142,7 @@ export function Scoreboard({ results, mode, date, onSubmitToLeaderboard, onPlayA
       {/* Total score */}
       <div className="text-center">
         <div className="text-4xl font-black text-blue-600 tabular-nums">{totalScore.toLocaleString()}</div>
-        <div className="text-gray-500 text-sm mt-1">out of 6,000 pts</div>
+        <div className="text-gray-500 text-sm mt-1">out of 5,000 pts</div>
         {submitResult && (
           <div className="mt-2 text-sm font-medium text-green-700">
             Rank #{submitResult.rank} on the leaderboard!

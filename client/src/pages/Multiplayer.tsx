@@ -47,6 +47,7 @@ export function MultiplayerPage() {
   const [mobileTab, setMobileTab] = useState<MobileTab>('readme');
   const [contentView, setContentView] = useState<{ type: 'readme' } | { type: 'file'; path: string; name: string }>({ type: 'readme' });
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const [readme, setReadme] = useState<string | null>(null);
 
   const submittedPlayersRef = useRef<Set<string>>(new Set());
 
@@ -146,6 +147,15 @@ export function MultiplayerPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!currentRepo) return;
+    setReadme(null);
+    fetch(`/api/repos/${currentRepo.id}/readme`)
+      .then(r => r.ok ? r.json() as Promise<{ content: string }> : Promise.resolve({ content: '' }))
+      .then(d => setReadme(d.content))
+      .catch(() => setReadme(''));
+  }, [currentRepo?.id]);
+
   const handleCreate = () => {
     setError(null);
     socketRef.current?.emit('room:create', { nickname: nickname.trim() });
@@ -184,8 +194,8 @@ export function MultiplayerPage() {
     return (
       <div className="grow bg-gray-50 flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5">
-          <div className="flex items-center gap-3 mb-1">
-            <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-700 text-sm">← Back</button>
+          <div className="relative flex items-center justify-center mb-1">
+            <button onClick={() => navigate('/')} className="absolute left-0 text-gray-400 hover:text-gray-700 text-sm">← Back</button>
             <h1 className="text-xl font-bold text-gray-900">Multiplayer</h1>
           </div>
 
@@ -430,7 +440,7 @@ export function MultiplayerPage() {
             {contentView.type === 'file' && fileContent !== null ? (
               <ReadmeViewer content={fileContent} filename={contentView.path} />
             ) : (
-              <ReadmeViewer content={currentRepo.readme || '*No README available*'} />
+              <ReadmeViewer content={readme || '*No README available*'} />
             )}
           </div>
         </main>

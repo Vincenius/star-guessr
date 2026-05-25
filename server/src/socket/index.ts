@@ -64,7 +64,6 @@ function toRepoForGame(r: RepoRecord): RepoForGame & { stars: number } {
     created_at: r.created_at,
     topics: JSON.parse(r.topics || '[]') as string[],
     license: r.license,
-    readme: r.readme,
     file_tree: JSON.parse(r.file_tree || '[]'),
     commits: JSON.parse(r.commits || '[]'),
     stars: r.stars,

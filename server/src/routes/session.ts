@@ -20,7 +20,6 @@ function toRepoForGame(r: RepoRecord): RepoForGame {
     license: r.license,
     file_tree: JSON.parse(r.file_tree || '[]'),
     commits: JSON.parse(r.commits || '[]'),
-    readme: r.readme,
   };
 }
 
@@ -69,7 +68,7 @@ router.get('/', (req: Request, res: Response) => {
     game_date,
     repo_ids: records.map(r => r.id),
     iat: now,
-    exp: now + 10 * 60, // 10-minute TTL
+    exp: now + 7 * 24 * 60 * 60, // 7-day TTL
   };
 
   const token = jwt.sign(payload, secret, { algorithm: 'HS256' });

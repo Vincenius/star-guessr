@@ -26,7 +26,6 @@ export interface RepoRecord {
   default_branch: string;
   file_tree: string; // JSON string
   commits: string; // JSON string
-  readme: string | null;
 }
 
 export interface RepoForGame {
@@ -40,7 +39,6 @@ export interface RepoForGame {
   license: string | null;
   file_tree: FileTreeNode[];
   commits: CommitInfo[];
-  readme: string | null;
 }
 
 export interface LeaderboardEntry {

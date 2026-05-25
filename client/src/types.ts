@@ -24,7 +24,6 @@ export interface RepoForGame {
   license: string | null;
   file_tree: FileTreeNode[];
   commits: CommitInfo[];
-  readme: string | null;
 }
 
 export interface SessionResponse {

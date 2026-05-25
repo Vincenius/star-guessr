@@ -190,7 +190,6 @@ router.get('/:id', (req: Request, res: Response) => {
     license: row.license,
     file_tree: JSON.parse(row.file_tree || '[]'),
     commits: JSON.parse(row.commits || '[]'),
-    readme: row.readme,
   };
 
   res.json(repo);
